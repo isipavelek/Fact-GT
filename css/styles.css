@@ -1,0 +1,76 @@
+/* Festo GT - Custom Styles & Glassmorphism Utilities */
+
+body {
+  background-color: #090D1A;
+  color: #F8FAFC;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #090D1A;
+}
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Subtle glow animation */
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.6)); }
+}
+.glow-effect {
+  animation: pulse-glow 3s infinite;
+}
+
+/* Glassmorphism Cards & Containers */
+.glass-card {
+  background: rgba(18, 24, 41, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+.glass-card-hover {
+  transition: all 0.2s ease-in-out;
+}
+.glass-card-hover:hover {
+  border-color: rgba(99, 102, 241, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px -5px rgba(99, 102, 241, 0.15);
+}
+
+/* Grade inputs & controls high contrast styling */
+.grade-input {
+  background-color: #1A2338 !important;
+  color: #FFFFFF !important;
+  border: 1px solid #334155 !important;
+  font-weight: 700 !important;
+  transition: all 0.15s ease;
+}
+.grade-input:focus {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3) !important;
+  background-color: #1E293B !important;
+}
+.grade-input::placeholder {
+  color: #64748B !important;
+}
+
+.grade-input-rec {
+  background-color: #1A2035 !important;
+  color: #A5B4FC !important;
+  border: 1px solid #4338CA !important;
+  font-weight: 700 !important;
+}
+.grade-input-rec:focus {
+  border-color: #818CF8 !important;
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.3) !important;
+}
