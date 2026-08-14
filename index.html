@@ -7964,6 +7964,9 @@ if (db.cronogramas && Array.isArray(db.cronogramas)) {
       db.cronogramas.push(newCrono);
       
       saveDB();
+      if (typeof syncToFirestore === 'function' && newCrono.id) {
+        syncToFirestore('cronogramas', newCrono.id, newCrono);
+      }
       renderCronoView();
       showToast(`✅ Cronograma '${nombre}' generado. ${clases.length} encuentros programados.`);
       document.getElementById("createCronoForm").reset();
@@ -8576,20 +8579,48 @@ if (db.cronogramas && Array.isArray(db.cronogramas)) {
       const existing = db.cronogramas.find(c => c.id === id);
       const curso = existing ? (existing.curso || 'Neumática Básica') : 'Neumática Básica';
 
-      // Usar buildClasesArray centralizado (incluye temas del currículo)
-      const clases = buildClasesArray(curso, turno, fechaInicio, diasSemana, recMargen);
-
       const idx = db.cronogramas.findIndex(c => c.id === id);
       if (idx !== -1) {
-        db.cronogramas[idx] = { ...db.cronogramas[idx], nombre, escuela_id: escuela, turno, fecha_inicio: fechaInicio, dias_semana: diasSemana, rec_margen: recMargen, clases, custom_schedule: false };
+        // Solo recalcular clases si cambian parámetros de agenda clave
+        const schedulingChanged = !existing ||
+          existing.curso !== curso ||
+          existing.turno !== turno ||
+          existing.fecha_inicio !== fechaInicio ||
+          JSON.stringify(existing.dias_semana) !== JSON.stringify(diasSemana) ||
+          existing.rec_margen !== recMargen;
+
+        let clases = existing.clases;
+        let isCustom = existing.custom_schedule || false;
+
+        if (schedulingChanged) {
+          clases = buildClasesArray(curso, turno, fechaInicio, diasSemana, recMargen);
+          isCustom = false;
+        }
+
+        db.cronogramas[idx] = { 
+          ...db.cronogramas[idx], 
+          nombre, 
+          escuela_id: escuela, 
+          turno, 
+          fecha_inicio: fechaInicio, 
+          dias_semana: diasSemana, 
+          rec_margen: recMargen, 
+          clases, 
+          custom_schedule: isCustom 
+        };
+        
+        saveDB();
+        if (typeof syncToFirestore === 'function' && id) {
+          syncToFirestore('cronogramas', id, db.cronogramas[idx]);
+        }
+        renderCronoView();
+        closeEditCronoModal();
+        if (schedulingChanged) {
+          showToast(`✅ Cronograma "${nombre}" actualizado y recalculado.`);
+        } else {
+          showToast(`✅ Cronograma "${nombre}" actualizado.`);
+        }
       }
-      saveDB();
-      if (typeof syncToFirestore === 'function' && id) {
-        syncToFirestore('cronogramas', id, db.cronogramas[idx]);
-      }
-      renderCronoView();
-      closeEditCronoModal();
-      showToast(`✅ Cronograma "${nombre}" actualizado y recalculado.`);
     }
 
     function populateCronoEscuelaSelect() {
@@ -8891,32 +8922,15 @@ if (db.cronogramas && Array.isArray(db.cronogramas)) {
         );
         const expectedCount = isTurnoCompleto ? 8 : 16;
 
-        // Generar plantilla con tipos/temas vigentes del currículo
-        const template = buildClasesArray(
-          crono.curso || 'Neumática Básica',
-          crono.turno || 'Mañana',
-          crono.fecha_inicio || '2026-04-29',
-          crono.dias_semana || ['1','3'],
-          crono.rec_margen || '21'
-        );
-
-        if (Array.isArray(crono.clases) && crono.clases.length === expectedCount) {
-          // Actualizar SIEMPRE tipo, tema y horas por posición para reflejar la malla curricular oficial.
-          // Las FECHAS elegidas por el usuario en el Timeline se conservan 100% intactas.
-          crono.clases.forEach((cl, i) => {
-            if (template[i]) {
-              cl.tipo  = template[i].tipo;
-              cl.horas = template[i].horas;
-              cl.tema  = template[i].tema;
-            }
-          });
-        } else if (!crono.custom_schedule) {
-          // Cantidad incorrecta → reconstruir completo (solo si no tiene custom_schedule)
-          crono.clases = template;
-        }
-
-        if (crono.custom_schedule && typeof saveCustomOverride === 'function') {
-          saveCustomOverride(crono);
+        if (!crono.clases || !Array.isArray(crono.clases) || crono.clases.length === 0) {
+          // Si no hay clases cargadas, generar usando la agenda base
+          crono.clases = buildClasesArray(
+            crono.curso || 'Neumática Básica',
+            crono.turno || 'Mañana',
+            crono.fecha_inicio || '2026-04-29',
+            crono.dias_semana || ['1','3'],
+            crono.rec_margen || '21'
+          );
         }
       });
       if (typeof saveDB === 'function') saveDB();
@@ -9495,9 +9509,22 @@ if (db.cronogramas && Array.isArray(db.cronogramas)) {
       }
 
       crono.clases[clIndex].fecha = targetFecha;
+      crono.clases[clIndex].dia = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'][new Date(targetFecha + 'T00:00:00').getDay()];
+      
+      crono.custom_schedule = true;
       reorderClassesAndSyncAttendance(crono);
       
+      if (crono.clases.length > 0) {
+        crono.fecha_inicio = crono.clases[0].fecha;
+      }
+      
+      if (typeof saveCustomOverride === 'function') {
+        saveCustomOverride(crono);
+      }
       saveDB();
+      if (typeof syncToFirestore === 'function' && crono.id) {
+        syncToFirestore('cronogramas', crono.id, crono);
+      }
       renderCronoView();
       showToast("Clase reubicada exitosamente.");
       draggedClassInfo = null;
@@ -9526,6 +9553,11 @@ if (db.cronogramas && Array.isArray(db.cronogramas)) {
         });
         while(newAsist.length < crono.clases.length) newAsist.push(true);
         est.asistencia_dias = newAsist;
+        
+        // Sincronizar asistencia de estudiante a Firestore
+        if (typeof syncToFirestore === 'function' && est.id) {
+          syncToFirestore('estudiantes', est.id, est);
+        }
       });
     }
 
@@ -9591,8 +9623,15 @@ if (db.cronogramas && Array.isArray(db.cronogramas)) {
         showToast("Clase creada.");
       }
 
+      crono.custom_schedule = true;
       reorderClassesAndSyncAttendance(crono);
+      if (typeof saveCustomOverride === 'function') {
+        saveCustomOverride(crono);
+      }
       saveDB();
+      if (typeof syncToFirestore === 'function' && crono.id) {
+        syncToFirestore('cronogramas', crono.id, crono);
+      }
       renderCronoView();
       closeClassModal();
     }
@@ -9613,11 +9652,21 @@ if (db.cronogramas && Array.isArray(db.cronogramas)) {
         estudiantesGrupo.forEach(est => {
           if (est.asistencia_dias && est.asistencia_dias.length > clIndex) {
             est.asistencia_dias.splice(clIndex, 1);
+            if (typeof syncToFirestore === 'function' && est.id) {
+              syncToFirestore('estudiantes', est.id, est);
+            }
           }
         });
         
+        crono.custom_schedule = true;
         reorderClassesAndSyncAttendance(crono);
+        if (typeof saveCustomOverride === 'function') {
+          saveCustomOverride(crono);
+        }
         saveDB();
+        if (typeof syncToFirestore === 'function' && crono.id) {
+          syncToFirestore('cronogramas', crono.id, crono);
+        }
         renderCronoView();
         showToast("Clase eliminada.");
         closeClassModal();
