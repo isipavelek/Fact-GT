@@ -106,50 +106,18 @@ function subscribeToFirestoreCollections() {
     if (typeof renderAll === 'function') renderAll();
   }, err => console.warn("Modo fallback/escuelas:", err.message));
 
-  // 2. Cronogramas — localStorage es la fuente de verdad.
-  // Firestore solo se usa cuando no hay datos guardados localmente (primera visita).
+  // 2. Cronogramas — Firestore es la fuente de verdad en tiempo real.
   dbFs.collection("cronogramas").onSnapshot(snapshot => {
-    // 1. Leer datos de Firestore
-    const remoteCronos = {};
+    const cronogramas = [];
     snapshot.forEach(doc => {
-      remoteCronos[doc.id] = { id: doc.id, ...doc.data() };
+      cronogramas.push({ id: doc.id, ...doc.data() });
     });
-
-    // 2. ¿Tenemos datos locales?
-    let localCronos = [];
-    try {
-      const saved = localStorage.getItem('festo_gt_db');
-      if (saved) {
-        const p = JSON.parse(saved);
-        if (p && Array.isArray(p.cronogramas) && p.cronogramas.length > 0) {
-          localCronos = p.cronogramas;
-        }
-      }
-    } catch(e) {}
-
-    const hasLocalData = localCronos.length > 0;
-
-    if (hasLocalData) {
-      // DATOS LOCALES DISPONIBLES:
-      // Usar datos locales siempre. Solo agregar cronogramas NUEVOS que vengan de Firestore.
-      const localIds = new Set(localCronos.map(c => c.id));
-      Object.values(remoteCronos).forEach(rc => {
-        if (!localIds.has(rc.id)) {
-          localCronos.push(rc); // Nuevo crono creado desde otro dispositivo
-        }
-      });
-      db.cronogramas = typeof applyCustomOverrides === 'function'
-        ? applyCustomOverrides(localCronos)
-        : localCronos;
-    } else {
-      // PRIMERA VISITA (sin datos locales): cargar desde Firestore y guardar localmente
-      const firestoreCronos = Object.values(remoteCronos);
-      db.cronogramas = typeof applyCustomOverrides === 'function'
-        ? applyCustomOverrides(firestoreCronos)
-        : firestoreCronos;
-      // Guardar baseline en localStorage para que próximos reloads usen datos locales
-      if (typeof saveDB === 'function') saveDB();
-    }
+    db.cronogramas = typeof applyCustomOverrides === 'function'
+      ? applyCustomOverrides(cronogramas)
+      : cronogramas;
+    
+    // Guardar en localStorage para soporte offline
+    if (typeof saveDB === 'function') saveDB();
 
     if (typeof refreshAllCronogramasStructure === 'function') refreshAllCronogramasStructure();
     if (typeof renderAll === 'function') renderAll();
