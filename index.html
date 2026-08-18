@@ -2687,7 +2687,12 @@ if (db.cronogramas && Array.isArray(db.cronogramas)) {
         db.escuelas = db.escuelas.filter(e => e.id !== schoolId);
         
         if (typeof dbFs !== 'undefined' && dbFs && isFirebaseConnected) {
-          dbFs.collection("escuelas").doc(schoolId).delete().catch(e => console.warn(e));
+          dbFs.collection("escuelas").doc(schoolId).delete()
+            .then(() => console.log("Escuela eliminada de Firestore"))
+            .catch(e => {
+              console.error("Error al eliminar escuela:", e);
+              showToast("❌ Error en Firebase: " + e.message);
+            });
         }
         
         saveDB();
@@ -3643,7 +3648,12 @@ if (db.cronogramas && Array.isArray(db.cronogramas)) {
       db.avisos_logisticos = (db.avisos_logisticos || []).filter(a => a.id !== avisoId);
       
       if (typeof dbFs !== 'undefined' && dbFs && isFirebaseConnected) {
-        dbFs.collection("avisos_logisticos").doc(avisoId).delete().catch(e => console.warn(e));
+        dbFs.collection("avisos_logisticos").doc(avisoId).delete()
+          .then(() => console.log("Aviso eliminado de Firestore"))
+          .catch(e => {
+            console.error("Error al eliminar aviso:", e);
+            showToast("❌ Error en Firebase: " + e.message);
+          });
       }
       
       saveDB();
@@ -4049,8 +4059,15 @@ if (db.cronogramas && Array.isArray(db.cronogramas)) {
         if (db.calificaciones) delete db.calificaciones[id];
         
         if (typeof dbFs !== 'undefined' && dbFs && isFirebaseConnected) {
-          dbFs.collection("estudiantes").doc(id).delete().catch(e => console.warn(e));
-          dbFs.collection("calificaciones").doc(id).delete().catch(e => console.warn(e));
+          dbFs.collection("estudiantes").doc(id).delete()
+            .then(() => console.log("Estudiante eliminado de Firestore"))
+            .catch(e => {
+              console.error("Error al eliminar estudiante:", e);
+              showToast("❌ Error en Firebase: " + e.message);
+            });
+          dbFs.collection("calificaciones").doc(id).delete()
+            .then(() => console.log("Calificación eliminada de Firestore"))
+            .catch(e => console.warn("Error al eliminar calificación:", e));
         }
         
         saveDB();
@@ -4760,7 +4777,12 @@ if (db.cronogramas && Array.isArray(db.cronogramas)) {
       db.cronogramas = db.cronogramas.filter(c => c.id !== cronoId);
       
       if (typeof dbFs !== 'undefined' && dbFs && isFirebaseConnected) {
-        dbFs.collection("cronogramas").doc(cronoId).delete().catch(e => console.warn(e));
+        dbFs.collection("cronogramas").doc(cronoId).delete()
+          .then(() => console.log("Cronograma eliminado de Firestore"))
+          .catch(e => {
+            console.error("Error al eliminar cronograma:", e);
+            showToast("❌ Error en Firebase: " + e.message);
+          });
       }
       
       saveDB();
