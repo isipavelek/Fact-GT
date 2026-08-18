@@ -2685,6 +2685,11 @@ if (db.cronogramas && Array.isArray(db.cronogramas)) {
       }
       if (confirm("¿Estás seguro de eliminar esta institución? Todos los estudiantes vinculados perderán su escuela.")) {
         db.escuelas = db.escuelas.filter(e => e.id !== schoolId);
+        
+        if (typeof dbFs !== 'undefined' && dbFs && isFirebaseConnected) {
+          dbFs.collection("escuelas").doc(schoolId).delete().catch(e => console.warn(e));
+        }
+        
         saveDB();
         renderAll();
         showToast("Institución eliminada de la base de datos.");
@@ -3636,6 +3641,11 @@ if (db.cronogramas && Array.isArray(db.cronogramas)) {
     function deleteAviso(avisoId) {
       if (!confirm("¿Estás seguro que querés eliminar este aviso logístico?")) return;
       db.avisos_logisticos = (db.avisos_logisticos || []).filter(a => a.id !== avisoId);
+      
+      if (typeof dbFs !== 'undefined' && dbFs && isFirebaseConnected) {
+        dbFs.collection("avisos_logisticos").doc(avisoId).delete().catch(e => console.warn(e));
+      }
+      
       saveDB();
       renderAvisosLogisticos();
       showToast("🗑️ Aviso eliminado.");
@@ -4037,6 +4047,12 @@ if (db.cronogramas && Array.isArray(db.cronogramas)) {
       if (confirm('¿Estás seguro de eliminar este alumno permanentemente?')) {
         db.estudiantes = db.estudiantes.filter(e => e.id !== id);
         if (db.calificaciones) delete db.calificaciones[id];
+        
+        if (typeof dbFs !== 'undefined' && dbFs && isFirebaseConnected) {
+          dbFs.collection("estudiantes").doc(id).delete().catch(e => console.warn(e));
+          dbFs.collection("calificaciones").doc(id).delete().catch(e => console.warn(e));
+        }
+        
         saveDB();
         renderTeacherSpreadsheet();
         renderSchoolsList();
@@ -4742,6 +4758,11 @@ if (db.cronogramas && Array.isArray(db.cronogramas)) {
       if (!crono) return;
       if (!confirm(`¿Eliminar el cronograma "${crono.nombre}"?\nEsta acción no se puede deshacer.`)) return;
       db.cronogramas = db.cronogramas.filter(c => c.id !== cronoId);
+      
+      if (typeof dbFs !== 'undefined' && dbFs && isFirebaseConnected) {
+        dbFs.collection("cronogramas").doc(cronoId).delete().catch(e => console.warn(e));
+      }
+      
       saveDB();
       renderCronoView();
       showToast(`🗑️ Cronograma "${crono.nombre}" eliminado.`);
