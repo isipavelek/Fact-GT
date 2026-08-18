@@ -1418,7 +1418,7 @@ function loadDB() {
     if (saved) {
       const parsed = JSON.parse(saved);
       if (parsed && Array.isArray(parsed.cronogramas) && parsed.cronogramas.length > 0) {
-        db.cronogramas = parsed.cronogramas;
+        db.cronogramas = parsed.cronogramas.filter(c => c && c.id && !c.id.includes('sample'));
       }
       if (parsed && Array.isArray(parsed.escuelas) && parsed.escuelas.length > 0) {
         db.escuelas = parsed.escuelas;
@@ -4872,22 +4872,7 @@ if (db.cronogramas && Array.isArray(db.cronogramas)) {
     }
 
     function initSampleCronogramas() {
-      if (!db.cronogramas) db.cronogramas = [];
-      if (db.cronogramas.length > 0) return;
-
-      const curso = 'Neumática Básica';
-      const escuelas = db.escuelas || [];
-
-      // Usa buildClasesArray para tener temas reales en datos de muestra
-      const buildCrono = (id, nombre, escuelaId, turno, fechaInicio, dias) => {
-        const clases = buildClasesArray(curso, turno, fechaInicio, dias, '21');
-        return { id, nombre, escuela_id: escuelaId, curso, turno, fecha_inicio: fechaInicio, dias_semana: dias, rec_margen: '21', clases, transporte: null };
-      };
-
-      if (escuelas.length >= 1) db.cronogramas.push(buildCrono('crono_sample_1', `Grupo A - ${escuelas[0].nombre.split(' ')[0]} ${escuelas[0].nombre.split(' ')[1] || ''}`.trim(), escuelas[0].id, 'Mañana',       '2026-08-03', ['1','3']));
-      if (escuelas.length >= 2) db.cronogramas.push(buildCrono('crono_sample_2', `Grupo B - ${escuelas[1].nombre.split(' ')[0]} ${escuelas[1].nombre.split(' ')[1] || ''}`.trim(), escuelas[1].id, 'Mañana y Tarde','2026-09-07', ['1','4']));
-      if (escuelas.length >= 3) db.cronogramas.push(buildCrono('crono_sample_3', `Grupo C - ${escuelas[2].nombre.split(' ')[0]} ${escuelas[2].nombre.split(' ')[1] || ''}`.trim(), escuelas[2].id, 'Tarde',        '2026-10-06', ['2','4']));
-      saveDB();
+      // Desactivado para trabajar únicamente con Firestore
     }
 
     function populateCronoSelector() {
